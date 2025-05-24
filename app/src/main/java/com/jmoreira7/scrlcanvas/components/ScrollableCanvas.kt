@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.jmoreira7.scrlcanvas.ui.theme.Woodsmoke50
 
 private const val PICTURE_PX = 1080
 private const val CANVAS_WIDTH_IN_PICTURES = 3
@@ -35,7 +36,7 @@ fun ScrollableCanvas() {
             for (i in 1 until CANVAS_WIDTH_IN_PICTURES) {
                 val x = (i * (PICTURE_PX)).toFloat()
                 drawLine(
-                    color = Color.Black,
+                    color = Woodsmoke50,
                     start = Offset(x = x, y = 0f),
                     end = Offset(x = x, y = size.height),
                     strokeWidth = 4f
