@@ -1,4 +1,4 @@
-package com.jmoreira7.scrlcanvas
+package com.jmoreira7.scrlcanvas.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.jmoreira7.scrlcanvas.components.ScrollableCanvas
+import com.jmoreira7.scrlcanvas.ui.components.ScrollableCanvas
 import com.jmoreira7.scrlcanvas.ui.theme.SCRLCanvasTheme
 
 class MainActivity : ComponentActivity() {

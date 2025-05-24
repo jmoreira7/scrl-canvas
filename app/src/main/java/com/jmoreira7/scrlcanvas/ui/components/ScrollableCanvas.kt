@@ -1,4 +1,4 @@
-package com.jmoreira7.scrlcanvas.components
+package com.jmoreira7.scrlcanvas.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
