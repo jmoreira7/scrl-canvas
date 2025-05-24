@@ -9,6 +9,8 @@ fun SCRLCanvasTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = lightColorScheme(
+        primary = BonJour,
+        onPrimary = Thunder,
         background = Woodsmoke
     )
 
