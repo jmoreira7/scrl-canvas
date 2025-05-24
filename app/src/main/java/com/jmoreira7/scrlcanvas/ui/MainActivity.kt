@@ -38,7 +38,10 @@ class MainActivity : ComponentActivity() {
                     AddButton(onClick = { viewModel.openSheet() })
 
                     if (uiState.showSheet) {
-                        OverlaysSheet(onDismissRequest = { viewModel.closeSheet() })
+                        OverlaysSheet(
+                            overlays = uiState.overlays,
+                            onDismissRequest = { viewModel.closeSheet() }
+                        )
                     }
                 }
             }

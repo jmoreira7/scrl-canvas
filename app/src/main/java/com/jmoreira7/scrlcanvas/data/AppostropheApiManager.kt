@@ -1,6 +1,7 @@
 package com.jmoreira7.scrlcanvas.data
 
 import android.util.Log
+import com.jmoreira7.scrlcanvas.BuildConfig
 import com.jmoreira7.scrlcanvas.data.model.OverlayCategory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 
-class AppostropheApiManager {
+class AppostropheApiManager : ApiManager {
     private val myHttpClient = HttpClient(Android) {
         install(HttpTimeout) {
             requestTimeoutMillis = THIRTY_SECONDS
@@ -24,9 +25,9 @@ class AppostropheApiManager {
         }
     }
 
-    suspend fun fetchOverlays(): Flow<List<OverlayCategory>> = flow {
+    override suspend fun fetchOverlays(): Flow<List<OverlayCategory>> = flow {
         val response: HttpResponse? = try {
-            myHttpClient.get("https://appostropheanalytics.herokuapp.com/scrl/test/overlays")
+            myHttpClient.get(BuildConfig.API_URL)
         } catch (e: Exception) {
             Log.i(TAG, "Error fetching overlays: ${e.message}")
             null
