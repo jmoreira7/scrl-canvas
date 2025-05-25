@@ -1,6 +1,7 @@
 package com.jmoreira7.scrlcanvas.ui
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jmoreira7.scrlcanvas.data.OverlayRepositoryImpl
@@ -79,6 +80,16 @@ class MainViewModel(
             currentState.copy(
                 canvasOverlays = currentState.canvasOverlays.map { overlay ->
                     if (overlay.id == overlayId) overlay.copy(position = newPosition) else overlay
+                }
+            )
+        }
+    }
+
+    fun setOverlaySize(overlayId: Int, size: Size) {
+        _state.update { currentState ->
+            currentState.copy(
+                canvasOverlays = currentState.canvasOverlays.map { overlay ->
+                    if (overlay.id == overlayId) overlay.copy(size = size) else overlay
                 }
             )
         }

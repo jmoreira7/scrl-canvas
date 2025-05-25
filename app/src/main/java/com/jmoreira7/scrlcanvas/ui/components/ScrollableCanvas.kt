@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -34,9 +35,10 @@ import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private const val PICTURE_PX = 1080
-private const val CANVAS_WIDTH_IN_PICTURES = 3
-private const val OVERLAY_MAX_SIZE = 100
+private const val PICTURE_HEIGHT_PX = 800
+private const val PICTURE_WIDTH_PX = 600
+private const val CANVAS_WIDTH_IN_PICTURES = 5
+private const val OVERLAY_MAX_SIZE = 140
 private const val SNAP_THRESHOLD = 10f
 private const val SNAP_PROXIMITY = 20f
 
@@ -45,13 +47,14 @@ fun ScrollableCanvas(
     overlays: List<UiOverlayItem> = emptyList(),
     selectedOverlayId: Int? = null,
     onSelectOverlay: (Int?) -> Unit = {},
-    onMoveOverlay: (Int?, Offset) -> Unit = { _, _ -> }
+    onMoveOverlay: (Int?, Offset) -> Unit = { _, _ -> },
+    onOverlaySizeCalculated: (Int, Size) -> Unit = { _, _ -> }
 ) {
     val density = LocalDensity.current
     val logicalDensity = LocalDensity.current.density
-    val canvasHeightDp = (PICTURE_PX / logicalDensity).dp
+    val canvasHeightDp = (PICTURE_HEIGHT_PX / logicalDensity).dp
     val canvasHeightPx = with(density) { canvasHeightDp.toPx() }
-    val canvasWidthDp = ((PICTURE_PX * CANVAS_WIDTH_IN_PICTURES) / logicalDensity).dp
+    val canvasWidthDp = ((PICTURE_WIDTH_PX * CANVAS_WIDTH_IN_PICTURES) / logicalDensity).dp
     val canvasWidthPx = with(density) { canvasWidthDp.toPx() }
 
     val snapLines = remember { mutableStateOf<List<Pair<Offset, Offset>>>(emptyList()) }
@@ -67,7 +70,7 @@ fun ScrollableCanvas(
         ) {
             drawRect(color = Color.White)
             for (i in 1 until CANVAS_WIDTH_IN_PICTURES) {
-                val x = (i * (PICTURE_PX)).toFloat()
+                val x = (i * (PICTURE_WIDTH_PX)).toFloat()
                 drawLine(
                     color = Woodsmoke50,
                     start = Offset(x = x, y = 0f),
@@ -87,72 +90,89 @@ fun ScrollableCanvas(
                     ) { onSelectOverlay(null) }
             ) {
                 overlays.forEach { overlay ->
-                    val isSelected = overlay.id == selectedOverlayId
-                    val dragOffset = remember { mutableStateOf(overlay.position) }
-                    val overlaySizePx = remember { mutableStateOf(Size(0f, 0f)) }
+                    key(selectedOverlayId) {
+                        val isSelected = overlay.id == selectedOverlayId
+                        val dragOffset = remember { mutableStateOf(overlay.position) }
 
-                    Box(
-                        modifier = Modifier
-                            .offset {
-                                IntOffset(
-                                    overlay.position.x.roundToInt(),
-                                    overlay.position.y.roundToInt()
-                                )
-                            }
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() },
-                            ) { onSelectOverlay(overlay.id) }
-                            .pointerInput(overlay.id) {
-                                detectDragGestures(
-                                    onDragStart = { onSelectOverlay(overlay.id) },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        if (isSelected) {
-                                            val proposedOffset = dragOffset.value + dragAmount
-                                            val (snappedOffset, lines) = getSnappedOffsetAndLines(
-                                                movingOverlayId = overlay.id,
-                                                proposedOffset = proposedOffset,
-                                                overlaySizePx = overlaySizePx.value,
-                                                overlays = overlays
-                                            )
-
-                                            dragOffset.value = getClampedToCanvasOffset(
-                                                newOffset = snappedOffset,
-                                                overlaySizePx = overlaySizePx.value,
-                                                canvasHeightPx = canvasHeightPx,
-                                                canvasWidthPx = canvasWidthPx
-                                            )
-                                            snapLines.value = lines
-                                            onMoveOverlay(overlay.id, dragOffset.value)
-                                        }
-                                    },
-                                    onDragEnd = { snapLines.value = emptyList() }
-                                )
-                            }
-                    ) {
-                        AsyncImage(
-                            model = overlay.imageUrl,
-                            contentDescription = overlay.name,
+                        Box(
                             modifier = Modifier
-                                .sizeIn(
-                                    maxWidth = OVERLAY_MAX_SIZE.dp,
-                                    minWidth = OVERLAY_MAX_SIZE.dp
-                                )
-                                .onGloballyPositioned { coordinates ->
-                                    overlaySizePx.value = Size(
-                                        coordinates.size.width.toFloat(),
-                                        coordinates.size.height.toFloat()
+                                .offset {
+                                    IntOffset(
+                                        overlay.position.x.roundToInt(),
+                                        overlay.position.y.roundToInt()
                                     )
                                 }
-                        )
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                ) { onSelectOverlay(overlay.id) }
+                                .pointerInput(overlay.id) {
+                                    detectDragGestures(
+                                        onDragStart = { onSelectOverlay(overlay.id) },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            if (isSelected) {
+                                                val proposedOffset = dragOffset.value + dragAmount
+                                                val (snappedOffset, lines) = getSnappedOffsetAndLines(
+                                                    movingOverlayId = overlay.id,
+                                                    proposedOffset = proposedOffset,
+                                                    movingOverlaySizePx = overlay.size
+                                                        ?: Size(
+                                                            OVERLAY_MAX_SIZE.toFloat(),
+                                                            OVERLAY_MAX_SIZE.toFloat()
+                                                        ),
+                                                    overlays = overlays
+                                                )
 
-                        if (isSelected) {
-                            Box(
+                                                dragOffset.value = getClampedToCanvasOffset(
+                                                    newOffset = snappedOffset,
+                                                    overlaySizePx = overlay.size
+                                                        ?: Size(
+                                                            OVERLAY_MAX_SIZE.toFloat(),
+                                                            OVERLAY_MAX_SIZE.toFloat()
+                                                        ),
+                                                    canvasHeightPx = canvasHeightPx,
+                                                    canvasWidthPx = canvasWidthPx
+                                                )
+                                                snapLines.value = lines
+                                                onMoveOverlay(overlay.id, dragOffset.value)
+                                            }
+                                        },
+                                        onDragEnd = { snapLines.value = emptyList() }
+                                    )
+                                }
+                        ) {
+                            AsyncImage(
+                                model = overlay.imageUrl,
+                                contentDescription = overlay.name,
                                 modifier = Modifier
-                                    .matchParentSize()
-                                    .background(MaterialTheme.colorScheme.overlaySelection)
+                                    .sizeIn(
+                                        maxWidth = OVERLAY_MAX_SIZE.dp,
+                                        minWidth = OVERLAY_MAX_SIZE.dp
+                                    )
+                                    .onGloballyPositioned { coordinates ->
+                                        val size = Size(
+                                            coordinates.size.width.toFloat(),
+                                            coordinates.size.height.toFloat()
+                                        )
+                                        if (overlay.size != size) {
+                                            overlay.id?.let { id ->
+                                                onOverlaySizeCalculated(
+                                                    id,
+                                                    size
+                                                )
+                                            }
+                                        }
+                                    }
                             )
+
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(MaterialTheme.colorScheme.overlaySelection)
+                                )
+                            }
                         }
                     }
                 }
@@ -189,17 +209,20 @@ private fun getClampedToCanvasOffset(
 private fun getSnappedOffsetAndLines(
     movingOverlayId: Int?,
     proposedOffset: Offset,
-    overlaySizePx: Size,
+    movingOverlaySizePx: Size,
     overlays: List<UiOverlayItem>
 ): Pair<Offset, List<Pair<Offset, Offset>>> {
     var snappedOffset = proposedOffset
     val lines = mutableListOf<Pair<Offset, Offset>>()
-    val movingOverlayRect = Rect(proposedOffset, overlaySizePx)
+    val movingOverlayRect = Rect(proposedOffset, movingOverlaySizePx)
     val snapResultX = SnapResult(minDist = SNAP_THRESHOLD + 1)
     val snapResultY = SnapResult(minDist = SNAP_THRESHOLD + 1)
 
     overlays.filter { overlay -> overlay.id != movingOverlayId }.forEach { otherOverlay ->
-        val otherOverlayRect = Rect(otherOverlay.position, overlaySizePx)
+        val otherOverlayRect = Rect(
+            otherOverlay.position,
+            otherOverlay.size ?: Size(OVERLAY_MAX_SIZE.toFloat(), OVERLAY_MAX_SIZE.toFloat())
+        )
         val isWithinYSnapRange = movingOverlayRect.bottom + SNAP_PROXIMITY > otherOverlayRect.top &&
                 movingOverlayRect.top - SNAP_PROXIMITY < otherOverlayRect.bottom
         val isWithinXSnapRange = movingOverlayRect.right + SNAP_PROXIMITY > otherOverlayRect.left &&

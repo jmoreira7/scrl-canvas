@@ -38,7 +38,8 @@ class MainActivity : ComponentActivity() {
                         overlays = uiState.canvasOverlays,
                         selectedOverlayId = uiState.selectedOverlayId,
                         onSelectOverlay = { id -> viewModel.selectOverlay(id) },
-                        onMoveOverlay = { id, pos -> viewModel.moveOverlay(id, pos) }
+                        onMoveOverlay = { id, pos -> viewModel.moveOverlay(id, pos) },
+                        onOverlaySizeCalculated = { id, size -> viewModel.setOverlaySize(id, size) }
                     )
                     AddButton(onClick = { viewModel.openSheet() })
 
