@@ -1,5 +1,6 @@
 package com.jmoreira7.scrlcanvas.ui
 
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jmoreira7.scrlcanvas.data.OverlayRepositoryImpl
@@ -61,6 +62,16 @@ class MainViewModel(
     fun selectOverlay(overlayId: Int?) {
         _state.update { currentState ->
             currentState.copy(selectedOverlayId = overlayId)
+        }
+    }
+
+    fun moveOverlay(overlayId: Int, newPosition: Offset) {
+        _state.update { currentState ->
+            currentState.copy(
+                canvasOverlays = currentState.canvasOverlays.map { overlay ->
+                    if (overlay.id == overlayId) overlay.copy(position = newPosition) else overlay
+                }
+            )
         }
     }
 }

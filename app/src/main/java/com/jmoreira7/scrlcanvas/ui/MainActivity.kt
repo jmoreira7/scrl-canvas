@@ -37,7 +37,8 @@ class MainActivity : ComponentActivity() {
                     ScrollableCanvas(
                         overlays = uiState.canvasOverlays,
                         selectedOverlayId = uiState.selectedOverlayId,
-                        onSelectOverlay = { overlayId -> viewModel.selectOverlay(overlayId) }
+                        onSelectOverlay = { id -> viewModel.selectOverlay(id) },
+                        onMoveOverlay = { id, pos -> viewModel.moveOverlay(id, pos) }
                     )
                     AddButton(onClick = { viewModel.openSheet() })
 

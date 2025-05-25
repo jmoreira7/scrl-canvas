@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AddButton(
-    onClick: () -> Unit = { /* Default no-op */ }
+    onClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier

@@ -31,7 +31,7 @@ import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
 @Composable
 fun OverlaysSheet(
     overlays: List<UiOverlayCategory>,
-    onDismissRequest: () -> Unit = { /* Default no-op */ },
+    onDismissRequest: () -> Unit = {},
     onOverlayClick: (UiOverlayItem) -> Unit
 ) {
     ModalBottomSheet(
