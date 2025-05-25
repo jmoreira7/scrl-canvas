@@ -39,7 +39,7 @@ private const val PICTURE_HEIGHT_PX = 800
 private const val PICTURE_WIDTH_PX = 600
 private const val CANVAS_WIDTH_IN_PICTURES = 5
 private const val OVERLAY_MAX_SIZE = 140
-private const val SNAP_THRESHOLD = 10f
+private const val SNAP_THRESHOLD = 7f
 private const val SNAP_PROXIMITY = 20f
 
 @Composable
@@ -121,7 +121,8 @@ fun ScrollableCanvas(
                                                             OVERLAY_MAX_SIZE.toFloat(),
                                                             OVERLAY_MAX_SIZE.toFloat()
                                                         ),
-                                                    overlays = overlays
+                                                    overlays = overlays,
+                                                    canvasHeightPx = canvasHeightPx
                                                 )
 
                                                 dragOffset.value = getClampedToCanvasOffset(
@@ -210,7 +211,8 @@ private fun getSnappedOffsetAndLines(
     movingOverlayId: Int?,
     proposedOffset: Offset,
     movingOverlaySizePx: Size,
-    overlays: List<UiOverlayItem>
+    overlays: List<UiOverlayItem>,
+    canvasHeightPx: Float
 ): Pair<Offset, List<Pair<Offset, Offset>>> {
     var snappedOffset = proposedOffset
     val lines = mutableListOf<Pair<Offset, Offset>>()
@@ -218,47 +220,83 @@ private fun getSnappedOffsetAndLines(
     val snapResultX = SnapResult(minDist = SNAP_THRESHOLD + 1)
     val snapResultY = SnapResult(minDist = SNAP_THRESHOLD + 1)
 
-    overlays.filter { overlay -> overlay.id != movingOverlayId }.forEach { otherOverlay ->
-        val otherOverlayRect = Rect(
-            otherOverlay.position,
-            otherOverlay.size ?: Size(OVERLAY_MAX_SIZE.toFloat(), OVERLAY_MAX_SIZE.toFloat())
+    findClosestPictureCenterSnap(
+        movingOverlayRect = movingOverlayRect,
+        snapResultX = snapResultX,
+        snapResultY = snapResultY
+    )
+
+    val snappedToPictureCenter = snapResultX.snap != null || snapResultY.snap != null
+
+    if (!snappedToPictureCenter) {
+        val (pictureSnapXs, pictureSnapYs) = calculatePictureEdgeSnapPoints()
+
+        findClosestOverlaySnap(
+            movingOverlayAxisPoints = listOf(
+                movingOverlayRect.left, movingOverlayRect.right
+            ),
+            targetsAxisPoints = pictureSnapXs,
+            snapResult = snapResultX
         )
-        val isWithinYSnapRange = movingOverlayRect.bottom + SNAP_PROXIMITY > otherOverlayRect.top &&
-                movingOverlayRect.top - SNAP_PROXIMITY < otherOverlayRect.bottom
-        val isWithinXSnapRange = movingOverlayRect.right + SNAP_PROXIMITY > otherOverlayRect.left &&
-                movingOverlayRect.left - SNAP_PROXIMITY < otherOverlayRect.right
 
-        if (isWithinYSnapRange) {
-            finClosestSnap(
-                movingOverlayAxisPoints = listOf(
-                    movingOverlayRect.left, movingOverlayRect.right, movingOverlayRect.center.x
-                ),
-                otherOverlayAxisPoints = listOf(
-                    otherOverlayRect.left, otherOverlayRect.right, otherOverlayRect.center.x
-                ),
-                snapResult = snapResultX
-            )
-        }
+        findClosestOverlaySnap(
+            movingOverlayAxisPoints = listOf(
+                movingOverlayRect.top, movingOverlayRect.bottom
+            ),
+            targetsAxisPoints = pictureSnapYs,
+            snapResult = snapResultY
+        )
+    }
 
-        if (isWithinXSnapRange) {
-            finClosestSnap(
-                movingOverlayAxisPoints = listOf(
-                    movingOverlayRect.top, movingOverlayRect.bottom, movingOverlayRect.center.y
-                ),
-                otherOverlayAxisPoints = listOf(
-                    otherOverlayRect.top, otherOverlayRect.bottom, otherOverlayRect.center.y
-                ),
-                snapResult = snapResultY
+    val snappedToPictureEdge = snapResultX.snap != null || snapResultY.snap != null
+
+    if (!snappedToPictureEdge) {
+        overlays.filter { overlay -> overlay.id != movingOverlayId }.forEach { otherOverlay ->
+            val otherOverlayRect = Rect(
+                otherOverlay.position,
+                otherOverlay.size ?: Size(OVERLAY_MAX_SIZE.toFloat(), OVERLAY_MAX_SIZE.toFloat())
             )
+            val isWithinYSnapRange =
+                movingOverlayRect.bottom + SNAP_PROXIMITY > otherOverlayRect.top &&
+                        movingOverlayRect.top - SNAP_PROXIMITY < otherOverlayRect.bottom
+            val isWithinXSnapRange =
+                movingOverlayRect.right + SNAP_PROXIMITY > otherOverlayRect.left &&
+                        movingOverlayRect.left - SNAP_PROXIMITY < otherOverlayRect.right
+
+            if (isWithinYSnapRange) {
+                findClosestOverlaySnap(
+                    movingOverlayAxisPoints = listOf(
+                        movingOverlayRect.left, movingOverlayRect.right
+                    ),
+                    targetsAxisPoints = listOf(
+                        otherOverlayRect.left, otherOverlayRect.right
+                    ),
+                    snapResult = snapResultX
+                )
+            }
+
+            if (isWithinXSnapRange) {
+                findClosestOverlaySnap(
+                    movingOverlayAxisPoints = listOf(
+                        movingOverlayRect.top, movingOverlayRect.bottom
+                    ),
+                    targetsAxisPoints = listOf(
+                        otherOverlayRect.top, otherOverlayRect.bottom
+                    ),
+                    snapResult = snapResultY
+                )
+            }
         }
     }
 
-    snappedOffset = snappedOffset.copy(x = snappedOffset.x + snapResultX.snapDelta)
+    snappedOffset = snappedOffset.copy(
+        x = snappedOffset.x + snapResultX.snapDelta,
+        y = snappedOffset.y + snapResultY.snapDelta
+    )
     snapResultX.snap?.let { snap ->
-        lines.add(Offset(snap.first, 0f) to Offset(snap.first, Float.MAX_VALUE))
+        lines.add(Offset(snap.first, 0f) to Offset(snap.first, canvasHeightPx))
     }
 
-    snappedOffset = snappedOffset.copy(y = snappedOffset.y + snapResultY.snapDelta)
     snapResultY.snap?.let { snap ->
         lines.add(Offset(0f, snap.first) to Offset(Float.MAX_VALUE, snap.first))
     }
@@ -266,13 +304,41 @@ private fun getSnappedOffsetAndLines(
     return snappedOffset to lines
 }
 
-private fun finClosestSnap(
+private fun findClosestPictureCenterSnap(
+    movingOverlayRect: Rect,
+    snapResultX: SnapResult,
+    snapResultY: SnapResult
+) {
+    for (i in 0 until CANVAS_WIDTH_IN_PICTURES) {
+        val centerX = i * PICTURE_WIDTH_PX + PICTURE_WIDTH_PX / 2f
+        val centerY = PICTURE_HEIGHT_PX / 2f
+        val distX = abs(movingOverlayRect.center.x - centerX)
+        val distY = abs(movingOverlayRect.center.y - centerY)
+
+        if (distX < SNAP_THRESHOLD) {
+            snapResultX.apply {
+                minDist = distX
+                snap = centerX to 0
+                snapDelta = centerX - movingOverlayRect.center.x
+            }
+        }
+        if (distY < SNAP_THRESHOLD) {
+            snapResultY.apply {
+                minDist = distY
+                snap = centerY to 0
+                snapDelta = centerY - movingOverlayRect.center.y
+            }
+        }
+    }
+}
+
+private fun findClosestOverlaySnap(
     movingOverlayAxisPoints: List<Float>,
-    otherOverlayAxisPoints: List<Float>,
+    targetsAxisPoints: List<Float>,
     snapResult: SnapResult
 ) {
     movingOverlayAxisPoints.forEachIndexed { index, movingX ->
-        otherOverlayAxisPoints.forEach { otherX ->
+        targetsAxisPoints.forEach { otherX ->
             val dist = abs(movingX - otherX)
             snapResult.apply {
                 if (dist < minDist && dist < SNAP_THRESHOLD) {
@@ -290,4 +356,23 @@ private fun finClosestSnap(
             }
         }
     }
+}
+
+private fun calculatePictureEdgeSnapPoints(): Pair<List<Float>, List<Float>> {
+    val pictureSnapXs = mutableListOf<Float>()
+    val pictureSnapYs = mutableListOf<Float>()
+    val topEdge = 0f
+    val bottomEdge = PICTURE_HEIGHT_PX.toFloat()
+
+    for (i in 0..CANVAS_WIDTH_IN_PICTURES) {
+        val left = i * PICTURE_WIDTH_PX.toFloat()
+        pictureSnapXs.add(left)
+    }
+
+    pictureSnapYs.apply {
+        add(topEdge)
+        add(bottomEdge)
+    }
+
+    return pictureSnapXs to pictureSnapYs
 }
