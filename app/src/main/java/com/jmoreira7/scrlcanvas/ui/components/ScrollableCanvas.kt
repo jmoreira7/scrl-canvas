@@ -33,14 +33,14 @@ import kotlin.math.roundToInt
 
 private const val PICTURE_PX = 1080
 private const val CANVAS_WIDTH_IN_PICTURES = 3
-private const val OVERLAY_MAX_SIZE = 150
+private const val OVERLAY_MAX_SIZE = 100
 
 @Composable
 fun ScrollableCanvas(
     overlays: List<UiOverlayItem> = emptyList(),
     selectedOverlayId: Int? = null,
     onSelectOverlay: (Int?) -> Unit = {},
-    onMoveOverlay: (Int, Offset) -> Unit = { _, _ -> }
+    onMoveOverlay: (Int?, Offset) -> Unit = { _, _ -> }
 ) {
     val density = LocalDensity.current
     val logicalDensity = LocalDensity.current.density

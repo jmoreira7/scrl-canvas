@@ -47,8 +47,8 @@ class MainActivity : ComponentActivity() {
                             overlays = uiState.overlays,
                             onDismissRequest = { viewModel.closeSheet() },
                             onOverlayClick = { overlay ->
-                                viewModel.addOverlayToCanvas(overlay)
-                                viewModel.selectOverlay(overlay.id)
+                                val newOverlayId = viewModel.addOverlayToCanvas(overlay)
+                                viewModel.selectOverlay(newOverlayId)
                                 viewModel.closeSheet()
                             }
                         )

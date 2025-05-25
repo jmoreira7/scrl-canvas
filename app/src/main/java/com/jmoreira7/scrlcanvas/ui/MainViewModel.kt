@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 data class UiState(
     val showSheet: Boolean = false,
@@ -53,10 +54,18 @@ class MainViewModel(
         }
     }
 
-    fun addOverlayToCanvas(overlay: UiOverlayItem) {
+    fun addOverlayToCanvas(overlay: UiOverlayItem): Int {
+        val newOverlayId = UUID.randomUUID().hashCode()
+
         _state.update { currentState ->
-            currentState.copy(canvasOverlays = currentState.canvasOverlays + overlay)
+            currentState.copy(
+                canvasOverlays = currentState.canvasOverlays + overlay.copy(
+                    id = newOverlayId
+                )
+            )
         }
+
+        return newOverlayId
     }
 
     fun selectOverlay(overlayId: Int?) {
@@ -65,7 +74,7 @@ class MainViewModel(
         }
     }
 
-    fun moveOverlay(overlayId: Int, newPosition: Offset) {
+    fun moveOverlay(overlayId: Int?, newPosition: Offset) {
         _state.update { currentState ->
             currentState.copy(
                 canvasOverlays = currentState.canvasOverlays.map { overlay ->

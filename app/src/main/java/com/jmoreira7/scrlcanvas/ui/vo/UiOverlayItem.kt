@@ -4,7 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import com.jmoreira7.scrlcanvas.data.model.OverlayItem
 
 data class UiOverlayItem(
-    val id: Int,
+    val id: Int? = null,
     val imageUrl: String,
     val name: String,
     val position: Offset = Offset(0f, 0f)
@@ -12,7 +12,6 @@ data class UiOverlayItem(
 
 fun OverlayItem.toUiOverlayItem(): UiOverlayItem {
     return UiOverlayItem(
-        id = this.id,
         imageUrl = this.sourceUrl,
         name = this.overlayName
     )
