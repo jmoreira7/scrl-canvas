@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -28,12 +29,16 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.jmoreira7.scrlcanvas.ui.theme.Woodsmoke50
 import com.jmoreira7.scrlcanvas.ui.theme.overlaySelection
+import com.jmoreira7.scrlcanvas.ui.utils.SnapResult
 import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val PICTURE_PX = 1080
 private const val CANVAS_WIDTH_IN_PICTURES = 3
 private const val OVERLAY_MAX_SIZE = 100
+private const val SNAP_THRESHOLD = 10f
+private const val SNAP_PROXIMITY = 20f
 
 @Composable
 fun ScrollableCanvas(
@@ -48,6 +53,8 @@ fun ScrollableCanvas(
     val canvasHeightPx = with(density) { canvasHeightDp.toPx() }
     val canvasWidthDp = ((PICTURE_PX * CANVAS_WIDTH_IN_PICTURES) / logicalDensity).dp
     val canvasWidthPx = with(density) { canvasWidthDp.toPx() }
+
+    val snapLines = remember { mutableStateOf<List<Pair<Offset, Offset>>>(emptyList()) }
 
     Box(
         modifier = Modifier
@@ -102,15 +109,25 @@ fun ScrollableCanvas(
                                     onDrag = { change, dragAmount ->
                                         change.consume()
                                         if (isSelected) {
+                                            val proposedOffset = dragOffset.value + dragAmount
+                                            val (snappedOffset, lines) = getSnappedOffsetAndLines(
+                                                movingOverlayId = overlay.id,
+                                                proposedOffset = proposedOffset,
+                                                overlaySizePx = overlaySizePx.value,
+                                                overlays = overlays
+                                            )
+
                                             dragOffset.value = getClampedToCanvasOffset(
-                                                newOffset = dragOffset.value + dragAmount,
+                                                newOffset = snappedOffset,
                                                 overlaySizePx = overlaySizePx.value,
                                                 canvasHeightPx = canvasHeightPx,
                                                 canvasWidthPx = canvasWidthPx
                                             )
+                                            snapLines.value = lines
                                             onMoveOverlay(overlay.id, dragOffset.value)
                                         }
                                     },
+                                    onDragEnd = { snapLines.value = emptyList() }
                                 )
                             }
                     ) {
@@ -139,6 +156,20 @@ fun ScrollableCanvas(
                         }
                     }
                 }
+
+                Canvas(
+                    modifier = Modifier
+                        .matchParentSize()
+                ) {
+                    snapLines.value.forEach { (start, end) ->
+                        drawLine(
+                            color = Color.Yellow,
+                            start = start,
+                            end = end,
+                            strokeWidth = 4f
+                        )
+                    }
+                }
             }
         }
     }
@@ -153,4 +184,87 @@ private fun getClampedToCanvasOffset(
     val clampedX = newOffset.x.coerceIn(0f, canvasWidthPx - overlaySizePx.width)
     val clampedY = newOffset.y.coerceIn(0f, canvasHeightPx - overlaySizePx.height)
     return Offset(clampedX, clampedY)
+}
+
+private fun getSnappedOffsetAndLines(
+    movingOverlayId: Int?,
+    proposedOffset: Offset,
+    overlaySizePx: Size,
+    overlays: List<UiOverlayItem>
+): Pair<Offset, List<Pair<Offset, Offset>>> {
+    var snappedOffset = proposedOffset
+    val lines = mutableListOf<Pair<Offset, Offset>>()
+    val movingOverlayRect = Rect(proposedOffset, overlaySizePx)
+    val snapResultX = SnapResult(minDist = SNAP_THRESHOLD + 1)
+    val snapResultY = SnapResult(minDist = SNAP_THRESHOLD + 1)
+
+    overlays.filter { overlay -> overlay.id != movingOverlayId }.forEach { otherOverlay ->
+        val otherOverlayRect = Rect(otherOverlay.position, overlaySizePx)
+        val isWithinYSnapRange = movingOverlayRect.bottom + SNAP_PROXIMITY > otherOverlayRect.top &&
+                movingOverlayRect.top - SNAP_PROXIMITY < otherOverlayRect.bottom
+        val isWithinXSnapRange = movingOverlayRect.right + SNAP_PROXIMITY > otherOverlayRect.left &&
+                movingOverlayRect.left - SNAP_PROXIMITY < otherOverlayRect.right
+
+        if (isWithinYSnapRange) {
+            finClosestSnap(
+                movingOverlayAxisPoints = listOf(
+                    movingOverlayRect.left, movingOverlayRect.right, movingOverlayRect.center.x
+                ),
+                otherOverlayAxisPoints = listOf(
+                    otherOverlayRect.left, otherOverlayRect.right, otherOverlayRect.center.x
+                ),
+                snapResult = snapResultX
+            )
+        }
+
+        if (isWithinXSnapRange) {
+            finClosestSnap(
+                movingOverlayAxisPoints = listOf(
+                    movingOverlayRect.top, movingOverlayRect.bottom, movingOverlayRect.center.y
+                ),
+                otherOverlayAxisPoints = listOf(
+                    otherOverlayRect.top, otherOverlayRect.bottom, otherOverlayRect.center.y
+                ),
+                snapResult = snapResultY
+            )
+        }
+    }
+
+    snappedOffset = snappedOffset.copy(x = snappedOffset.x + snapResultX.snapDelta)
+    snapResultX.snap?.let { snap ->
+        lines.add(Offset(snap.first, 0f) to Offset(snap.first, Float.MAX_VALUE))
+    }
+
+    snappedOffset = snappedOffset.copy(y = snappedOffset.y + snapResultY.snapDelta)
+    snapResultY.snap?.let { snap ->
+        lines.add(Offset(0f, snap.first) to Offset(Float.MAX_VALUE, snap.first))
+    }
+
+    return snappedOffset to lines
+}
+
+private fun finClosestSnap(
+    movingOverlayAxisPoints: List<Float>,
+    otherOverlayAxisPoints: List<Float>,
+    snapResult: SnapResult
+) {
+    movingOverlayAxisPoints.forEachIndexed { index, movingX ->
+        otherOverlayAxisPoints.forEach { otherX ->
+            val dist = abs(movingX - otherX)
+            snapResult.apply {
+                if (dist < minDist && dist < SNAP_THRESHOLD) {
+                    minDist = dist
+                    snap = otherX to index
+                    snapDelta = otherX - movingX
+                } else if (dist == minDist && dist < SNAP_THRESHOLD) {
+                    snap?.let {
+                        if (index == 2 && it.second != 2) {
+                            snap = otherX to index
+                            snapDelta = otherX - movingX
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
