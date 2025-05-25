@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
@@ -12,13 +13,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.jmoreira7.scrlcanvas.ui.theme.Woodsmoke50
+import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
 
 private const val PICTURE_PX = 1080
 private const val CANVAS_WIDTH_IN_PICTURES = 3
 
 @Composable
-fun ScrollableCanvas() {
+fun ScrollableCanvas(
+    overlays: List<UiOverlayItem> = emptyList()
+) {
     val density = LocalDensity.current.density
     val canvasHeight = (PICTURE_PX / density).dp
     val canvasWidth = ((PICTURE_PX * CANVAS_WIDTH_IN_PICTURES) / density).dp
@@ -41,6 +46,23 @@ fun ScrollableCanvas() {
                     end = Offset(x = x, y = size.height),
                     strokeWidth = 4f
                 )
+            }
+        }
+
+        if (overlays.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .height(canvasHeight)
+                    .width(canvasWidth)
+            ) {
+                overlays.forEach { overlay ->
+                    AsyncImage(
+                        model = overlay.imageUrl,
+                        contentDescription = overlay.name,
+                        modifier = Modifier
+                            .sizeIn(maxWidth = 150.dp, minWidth = 150.dp)
+                    )
+                }
             }
         }
     }

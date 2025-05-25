@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jmoreira7.scrlcanvas.data.OverlayRepositoryImpl
 import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayCategory
+import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
 import com.jmoreira7.scrlcanvas.ui.vo.toUiOverlayCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.withContext
 
 data class UiState(
     val showSheet: Boolean = false,
-    val overlays: List<UiOverlayCategory> = emptyList()
+    val overlays: List<UiOverlayCategory> = emptyList(),
+    val canvasOverlays: List<UiOverlayItem> = emptyList()
 )
 
 class MainViewModel(
@@ -46,6 +48,12 @@ class MainViewModel(
     fun closeSheet() {
         _state.update { currentState ->
             currentState.copy(showSheet = false)
+        }
+    }
+
+    fun addOverlayToCanvas(overlay: UiOverlayItem) {
+        _state.update { currentState ->
+            currentState.copy(canvasOverlays = currentState.canvasOverlays + overlay)
         }
     }
 }

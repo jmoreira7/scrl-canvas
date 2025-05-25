@@ -2,6 +2,7 @@
 
 package com.jmoreira7.scrlcanvas.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -25,11 +26,13 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.jmoreira7.scrlcanvas.R
 import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayCategory
+import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
 
 @Composable
 fun OverlaysSheet(
     overlays: List<UiOverlayCategory>,
     onDismissRequest: () -> Unit = { /* Default no-op */ },
+    onOverlayClick: (UiOverlayItem) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -57,7 +60,9 @@ fun OverlaysSheet(
                         SubcomposeAsyncImage(
                             model = overlay.imageUrl,
                             contentDescription = overlay.name,
-                            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp),
+                            modifier = Modifier
+                                .padding(vertical = 16.dp, horizontal = 8.dp)
+                                .clickable { onOverlayClick(overlay) },
                             loading = {
                                 Box(contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(
