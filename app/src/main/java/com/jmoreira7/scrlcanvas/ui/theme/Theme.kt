@@ -1,8 +1,10 @@
 package com.jmoreira7.scrlcanvas.ui.theme
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 @Composable
@@ -22,3 +24,8 @@ fun SCRLCanvasTheme(
         content = content
     )
 }
+
+val ColorScheme.overlaySelection: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = FrenchPass50

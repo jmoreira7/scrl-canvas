@@ -16,7 +16,8 @@ import kotlinx.coroutines.withContext
 data class UiState(
     val showSheet: Boolean = false,
     val overlays: List<UiOverlayCategory> = emptyList(),
-    val canvasOverlays: List<UiOverlayItem> = emptyList()
+    val canvasOverlays: List<UiOverlayItem> = emptyList(),
+    val selectedOverlayId: Int? = null
 )
 
 class MainViewModel(
@@ -54,6 +55,12 @@ class MainViewModel(
     fun addOverlayToCanvas(overlay: UiOverlayItem) {
         _state.update { currentState ->
             currentState.copy(canvasOverlays = currentState.canvasOverlays + overlay)
+        }
+    }
+
+    fun selectOverlay(overlayId: Int?) {
+        _state.update { currentState ->
+            currentState.copy(selectedOverlayId = overlayId)
         }
     }
 }

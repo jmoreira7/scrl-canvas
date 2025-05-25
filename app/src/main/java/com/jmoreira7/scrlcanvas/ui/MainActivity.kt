@@ -34,7 +34,11 @@ class MainActivity : ComponentActivity() {
                         .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
                 ) {
-                    ScrollableCanvas(overlays = uiState.canvasOverlays)
+                    ScrollableCanvas(
+                        overlays = uiState.canvasOverlays,
+                        selectedOverlayId = uiState.selectedOverlayId,
+                        onSelectOverlay = { overlayId -> viewModel.selectOverlay(overlayId) }
+                    )
                     AddButton(onClick = { viewModel.openSheet() })
 
                     if (uiState.showSheet) {
@@ -43,6 +47,7 @@ class MainActivity : ComponentActivity() {
                             onDismissRequest = { viewModel.closeSheet() },
                             onOverlayClick = { overlay ->
                                 viewModel.addOverlayToCanvas(overlay)
+                                viewModel.selectOverlay(overlay.id)
                                 viewModel.closeSheet()
                             }
                         )

@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 
 val BonJour = Color(0xFFE9E8E9)
 
+val FrenchPass50 = Color(0x80b9defd)
+
 val Thunder = Color(0xFF2B292B)
 
 val Woodsmoke = Color(0xFF0E0E12)

@@ -1,28 +1,39 @@
 package com.jmoreira7.scrlcanvas.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.jmoreira7.scrlcanvas.ui.theme.Woodsmoke50
+import com.jmoreira7.scrlcanvas.ui.theme.overlaySelection
 import com.jmoreira7.scrlcanvas.ui.vo.UiOverlayItem
+import kotlin.math.roundToInt
 
 private const val PICTURE_PX = 1080
 private const val CANVAS_WIDTH_IN_PICTURES = 3
 
 @Composable
 fun ScrollableCanvas(
-    overlays: List<UiOverlayItem> = emptyList()
+    overlays: List<UiOverlayItem> = emptyList(),
+    selectedOverlayId: Int? = null,
+    onSelectOverlay: (Int?) -> Unit = {}
 ) {
     val density = LocalDensity.current.density
     val canvasHeight = (PICTURE_PX / density).dp
@@ -54,14 +65,42 @@ fun ScrollableCanvas(
                 modifier = Modifier
                     .height(canvasHeight)
                     .width(canvasWidth)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onSelectOverlay(null) }
             ) {
                 overlays.forEach { overlay ->
-                    AsyncImage(
-                        model = overlay.imageUrl,
-                        contentDescription = overlay.name,
+                    val isSelected = overlay.id == selectedOverlayId
+
+                    Box(
                         modifier = Modifier
-                            .sizeIn(maxWidth = 150.dp, minWidth = 150.dp)
-                    )
+                            .offset {
+                                IntOffset(
+                                    overlay.position.x.roundToInt(),
+                                    overlay.position.y.roundToInt()
+                                )
+                            }
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() },
+                            ) { onSelectOverlay(overlay.id) }
+                    ) {
+                        AsyncImage(
+                            model = overlay.imageUrl,
+                            contentDescription = overlay.name,
+                            modifier = Modifier
+                                .sizeIn(maxWidth = 150.dp, minWidth = 150.dp)
+                        )
+
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MaterialTheme.colorScheme.overlaySelection)
+                            )
+                        }
+                    }
                 }
             }
         }
