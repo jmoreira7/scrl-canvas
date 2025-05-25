@@ -4,12 +4,14 @@ import com.jmoreira7.scrlcanvas.data.model.OverlayCategory
 
 data class UiOverlayCategory(
     val name: String,
-    val items: List<UiOverlayItem>
+    val items: List<UiOverlayItem>,
+    val thumbnailUrl: String
 )
 
 fun OverlayCategory.toUiOverlayCategory(): UiOverlayCategory {
     return UiOverlayCategory(
         name = this.title,
-        items = this.items.map { it.toUiOverlayItem() }
+        items = this.items.map { it.toUiOverlayItem() },
+        thumbnailUrl = this.thumbnailUrl
     )
 }
